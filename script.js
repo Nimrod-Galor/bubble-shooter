@@ -18,6 +18,7 @@ var numOfShots = 0;
 var currentBall;
 var nextBall;
 var popTimer = null;
+var fireReady = true;
 
 var ballVariants = ["#f22", "#f2f", "#22f", "#2ff", "#2f2", "#ff2"];
 var balls = [];
@@ -206,6 +207,7 @@ function render(evt){
                 ballsToPop.splice(0, 1);
                 if(ballsToPop.length == 0){
                     popTimer = null;
+                    fireReady = true;
                 }else{
                     popTimer = 10;
                 }
@@ -217,8 +219,8 @@ function render(evt){
     // render all balls
     for(let i=0; i<balls.length; i++){
         if(balls[i].angle != 0){// if fire move ball
-            balls[i].x = balls[i].x + 12  * Math.cos(balls[i].angle);
-            balls[i].y = balls[i].y + 12 * Math.sin(balls[i].angle);
+            balls[i].x += 12  * Math.cos(balls[i].angle);
+            balls[i].y += 12 * Math.sin(balls[i].angle);
         
             // bouns of wall
             if(balls[i].x > 660 || balls[i].x < 45){// Wall collision
@@ -229,19 +231,20 @@ function render(evt){
                 balls[i].angle = 0;
                 balls[i].y = 42;
                 // snug to x
-                //balls[i].x = balls[i].x > balls[b].x ? balls[b].x + 35 : balls[b].x - 35;
+                let tmpx = (balls[i].x - 42) % 69;
+                balls[i].x -= tmpx <= 35 ? tmpx : -(69 - tmpx);// balls[i].x > balls[b].x ? balls[b].x + 35 : balls[b].x - 35;
+                fireReady = true;
             }
             // check balls collision
-            let a = 65;//r1 + r2;
+            
             for(let b=0; b<balls.length; b++){
                 if(b == i){ continue; }
-                
+                let a = 60;//r1 + r2;
                 let x = balls[i].x - balls[b].x;
                 let y = balls[i].y - balls[b].y;
     
                 if (a > Math.sqrt((x * x) + (y * y))) {// collision
 console.log("collision");
-                    a = 71;
                     balls[i].angle = 0;
                     // snug ball
                     if(balls[i].x > balls[b].x && balls[b].x < 670){
@@ -251,23 +254,20 @@ console.log("collision");
                         balls[i].x = balls[b].x - 35;
                     }
                     balls[i].y = balls[i].y > balls[b].y ? balls[b].y + 58 : balls[b].y;
-                    //balls[i].y = balls[b].y + 58;
-                    // check is balls are the same color
 
-                    if(balls[i].colorIndex == balls[b].colorIndex){
-console.log("collision color match");
-                        ballsToPop.push(balls[i]);
-                        findAllAttachedBalls(balls[i]);
-                        // check if we have more than 3 attached
-                        if(ballsToPop.length >= 3){
-                            // detached from ghroup balls
-                            checkDetachedBalls();
-                            popTimer = 10;
-                        }else{
-                            //reset array;
-                            ballsToPop = [];
-                        }
+                    ballsToPop.push(balls[i]);
+                    findAllAttachedBalls(balls[i]);
+                    // check if we have more than 3 attached
+                    if(ballsToPop.length >= 3){
+                        // detached from ghroup balls
+                        checkDetachedBalls();
+                        popTimer = 10;
+                    }else{
+                        //reset array;
+                        ballsToPop = [];
+                        fireReady = true;
                     }
+
                     break;
                 }
             }
@@ -285,29 +285,32 @@ console.log("collision color match");
         ctx.stroke(); 
     }
 
+    
+
     window.requestAnimationFrame(render);
 }
 
 function findAllAttachedBalls(tball){
-    console.log("findAllAttachedBalls");
+//console.log("findAllAttachedBalls");
     // check balls collision
     for(let b=0; b<balls.length; b++){
         // check if ball in pop arr
-        if(ballsToPop.includes(balls[b])){
+        if(ballsToPop.includes(balls[b]) || balls[b] == tball){
             // same ball continue
             continue;
         }
         
-        let a = 71;//r1 + r2;
+        let a = 80;//r1 + r2;
         let x = tball.x - balls[b].x;
         let y = tball.y - balls[b].y;
 
         if (a > Math.sqrt((x * x) + (y * y))) {// collision
+//console.log(`ball:${b} attached`);
             if(tball.colorIndex == balls[b].colorIndex){
+//console.log("color match");
                 ballsToPop.push(balls[b]);
                 findAllAttachedBalls(balls[b]);
             }
-            //break;
         }
     }
 }
@@ -332,13 +335,17 @@ function checkDetachedBalls(){
                 break;
             }
         }
-        if(!isgroup){
+        if(!isgroup){// ball is detached. add to pop arr.
             ballsToPop.push(tocheck[a]);
         }
     }
 }
 
 function fire(){
+    if(!fireReady){
+        return;
+    }
+    fireReady = false;
     numOfShots += 1;
     // start fire sequence
     currentBall.angle = mouse.angle;
