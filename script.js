@@ -1,4 +1,3 @@
-window.requestAnimationFrame(render);
 window.addEventListener("load", init);
 
 var canvas = document.getElementById('canvas');
@@ -6,20 +5,32 @@ canvas.addEventListener('mousemove', function(evt) {
     let rect = canvas.getBoundingClientRect();
     mouse.x = evt.clientX - rect.left;
     mouse.y = evt.clientY - rect.top;
+    if(mouse.x < 10 || mouse.x > 730 || mouse.y < 10 || mouse.y > 650){
+        return;
+    }
+    let dx = mouse.x - needle.x1;
+    let dy = (mouse.y < 640 ? mouse.y : 640) - needle.y1;
+    mouse.angle = Math.atan2(dy, dx);
 });
 canvas.addEventListener("click", fire);
 
 var ctx = canvas.getContext('2d');
 var mouse = {x:0,y:0, angle:0};
-var needle = {x1:350, y1: 620, x2:0, y2:0};
+var needle = {x1:365, y1: 655, x2:0, y2:0};
+var action = "wait";
+
+
 var score = 0;
 var level = 0;
 var numOfShots = 0;
+
+
 var currentBall;
 var nextBall;
+var fireBall;
+var fireBallAngle = 0;
+
 var popTimer = null;
-var fireReady = true;
-var descend = 10;
 let rowFull = true;
 
 var ballVariants = ["#f22", "#f2f", "#22f", "#2ff", "#2f2", "#ff2"];
@@ -31,82 +42,85 @@ class Ball{
         this.x = x;
         this.y = y;
         this.colorIndex = color;
-        this.angle = 0;
+        //this.angle = 0;
     }
 }
 
 function init(){
     score = 0;
     numOfShots = 0;
-    currentBall = new Ball(350, 620, getRndBallColorIndex());
-    nextBall = new Ball(200, 658, getRndBallColorIndex());
+    currentBall = new Ball(365, 655, getRndBallColorIndex());
+    nextBall = new Ball(200, 695, getRndBallColorIndex());
+    fireBall = null;
 
-    // init balls
+    /************   init balls  **************/
+    /****************************************/
     rowFull = true;
-    let tmpx = 42;
-    let tmpy = 42;
+    let tmpx = 45;
+    let tmpy = 45;
     for(let i=1; i<30; i++){
         let tmpBall = new Ball(tmpx, tmpy, getRndBallColorIndex());
         balls.push(tmpBall);
-        tmpx += 69;
-        if(tmpx > 690){// new row
+        tmpx += 71;
+        if(tmpx >= 710){// new row
             tmpy += 58;
             if(rowFull){
-                tmpx = 77;
+                tmpx = 80;
                 rowFull = false;
             }else{
-                tmpx = 42;
+                tmpx = 45;
                 rowFull = true;
             }
         }
     }
-}
 
-function render(evt){
-    ctx.clearRect(0, 0, 950, 700);
-
-    /********************************************/
-    /***********    Frame   *********************/
-    /********************************************/
-    var gradient1 = ctx.createLinearGradient(0, 0, 700, 0);
+    /************   init frame  **************/
+    /****************************************/
+    var gradient1 = ctx.createLinearGradient(0, 0, 710, 0);
     gradient1.addColorStop("0", "#6666ff");
     gradient1.addColorStop("0.5", "#66ff66");
     gradient1.addColorStop("1.0", "#ff6666");
-
-    // Fill with gradient
     ctx.strokeStyle = gradient1;
     ctx.lineWidth = 10;
-    ctx.strokeRect(2, 2, 700, 696);
+    ctx.strokeRect(5, 5, 730, 730);
 
+    window.requestAnimationFrame(render);
+}
+
+
+
+
+function render(evt){
+    ctx.clearRect(10, 10, 920, 720);
+    
     /********************************************/
     /***********    Side Menu   *****************/
     /********************************************/
     ctx.fillStyle = "#ff6666";
-    ctx.fillRect(704, 0, 250, 700);
+    ctx.fillRect(730, 0, 220, 740);
     
     // Score
     ctx.font = "30px Verdana";
-    // Create gradient
-    ctx.fillStyle = "blue";
+    ctx.fillStyle = "black";
+    ctx.textAlign = "left";
     ctx.fillText("Score:", 780, 50); 
-
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "blue";
     ctx.textAlign = "center";
     ctx.fillText(score, 830, 100); 
 
     // Level
-    ctx.fillStyle = "blue";
+    ctx.fillStyle = "black";
+    ctx.textAlign = "left";
     ctx.fillText("Level:", 780, 200); 
-
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "blue";
     ctx.textAlign = "center";
     ctx.fillText(level, 830, 250); 
 
     // Shots
-    ctx.fillStyle = "blue";
+    ctx.fillStyle = "black";
+    ctx.textAlign = "left";
     ctx.fillText("Shots:", 780, 350); 
-
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "blue";
     ctx.textAlign = "center";
     ctx.fillText(numOfShots, 830, 400); 
     
@@ -117,29 +131,26 @@ function render(evt){
     ctx.beginPath();
     ctx.lineWidth = 8;
     ctx.lineCap = "round";
-    ctx.moveTo(20, 620);
-    ctx.lineTo(310, 620);
-    ctx.moveTo(390, 620);
-    ctx.lineTo(680, 620);
+    ctx.moveTo(20, 655);
+    ctx.lineTo(325, 655);
+    ctx.moveTo(405, 655);
+    ctx.lineTo(710, 655);
     ctx.strokeStyle = "red";
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(350, 620, 40, 3.15, 2 * Math.PI);
-    ctx.strokeStyle = "red";
-    //ctx.lineWidth = 3;
+    ctx.arc(365, 655, 40, 3.15, 2 * Math.PI);
+    //ctx.strokeStyle = "red";
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.strokeStyle = 'red';
-    ctx.arc(350, 620, 10, 0, Math.PI * 2, true);
+    //ctx.strokeStyle = 'red';
+    ctx.arc(365, 655, 10, 0, Math.PI * 2, true);
     ctx.stroke();
     /********************************************/
-    /**********     Needle    *************/
+    /**********     Needle          *************/
     /********************************************/
-    let dx = mouse.x - needle.x1;
-    let dy = (mouse.y < 610 ? mouse.y : 610) - needle.y1;
-    mouse.angle = Math.atan2(dy, dx);
+    
 
     needle.x2 = needle.x1 + 80 * Math.cos(mouse.angle);
     needle.y2 = needle.y1 + 80 * Math.sin(mouse.angle);
@@ -150,190 +161,254 @@ function render(evt){
     ctx.stroke();
 
     /********************************************/
-    /**********     Current Ball    *************/
+    /**********     Actions         *************/
     /********************************************/
-    if(currentBall.x < 350){
-        currentBall.x *= 1.1;
-        if(currentBall.x > 350){
-            currentBall.x = 350;
-        }
-    }else if(currentBall.y > 620){
-        currentBall.y *= 0.98;
-        if(currentBall.y < 620){
-            currentBall.y = 620;
-        }
-    }
-
-    ctx.save();
-    let grd = ctx.createRadialGradient(currentBall.x -10, currentBall.y -13, 1, currentBall.x, currentBall.y, 35);
-    grd.addColorStop(0, "white" );
-    grd.addColorStop(1, ballVariants[currentBall.colorIndex] );
-    ctx.beginPath();
-    ctx.arc(currentBall.x, currentBall.y, 33, 0, 2 * Math.PI);
-    ctx.globalCompositeOperation = "destination-over";
-    ctx.fillStyle = grd;
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = ballVariants[currentBall.colorIndex];
-    ctx.stroke(); 
-    ctx.restore();
-    /********************************************/
-    /**********     Next Ball    ****************/
-    /********************************************/
-    grd = ctx.createRadialGradient(nextBall.x -10, nextBall.y -13, 1, nextBall.x, nextBall.y, 35);
-    grd.addColorStop(0, "white" );
-    grd.addColorStop(1, ballVariants[nextBall.colorIndex] );
-    ctx.beginPath();
-    ctx.arc(nextBall.x, nextBall.y, 33, 0, 2 * Math.PI);
-    ctx.fillStyle = grd;
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = ballVariants[nextBall.colorIndex];
-    ctx.stroke(); 
-
-    /********************************************/
-    /**********     Balls    ********************/
-    /********************************************/
-
-    let userLossFlag = false;
-    // move bak row down
-    if(balls[0].y < 42){
-        // move all balls down
-        for(let i=0; i<balls.length; i++){
-            balls[i].y += 3;
-            if(balls[i].y >= 390){
-                userLossFlag = true;
-            }
-        }
-
-        if(balls[0].y == 42){
-            fireReady = true;
-        }
-    }
-
-    // increase pop timer
-    if(popTimer !== null){
-        popTimer -= 1;
-        fireReady = false;
-    }
-    // time to pop ball
-    if(popTimer === 0){
-        // add score
-        score += (10 * ballsToPop.length);
-        // select currect ball to pop (remove from ball arr)
-        for(let i=0; i<balls.length; i++){
-            if(balls[i].x == ballsToPop[0].x && balls[i].y == ballsToPop[0].y){
-                balls.splice(i, 1);
-                ballsToPop.splice(0, 1);
-                if(ballsToPop.length == 0){
-                    popTimer = null;
-                    fireReady = true;
-                }else{
-                    popTimer = 10;
-                }
-                break;
-            }
-        }
-    }
-
-    
-    // render all balls
-    for(let i=0; i<balls.length; i++){
-        if(balls[i].angle != 0){// if fire move ball
-            balls[i].x += 12  * Math.cos(balls[i].angle);
-            balls[i].y += 12 * Math.sin(balls[i].angle);
+    switch(action){
+        case "fire":
+            fireBall.x += 12  * Math.cos(fireBallAngle);
+            fireBall.y += 12 * Math.sin(fireBallAngle);
         
             // bouns of wall
-            if(balls[i].x > 660 || balls[i].x < 45){// Wall collision
-                balls[i].angle = Math.PI - balls[i].angle;
+            if(fireBall.x > 685 || fireBall.x < 45){// Wall collision
+                fireBallAngle = Math.PI - fireBallAngle;
             }
             // is ceiling
-            if(balls[i].y <= 42){
-                balls[i].angle = 0;
-                balls[i].y = 42;
+            if(fireBall.y <= 45){
+                fireBallAngle = 0;
+                fireBall.y = 45;
                 // snug to x
-                let tmpx = (balls[i].x - 42) % 69;
-                balls[i].x -= tmpx <= 35 ? tmpx : -(69 - tmpx);// balls[i].x > balls[b].x ? balls[b].x + 35 : balls[b].x - 35;
-                fireReady = true;
+                let tmpx = (fireBall.x - 45) % 70;
+                fireBall.x -= tmpx <= 35 ? tmpx : -(70 - tmpx);
+                balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
+                fireBall = null;
+                if(numOfShots % 5 == 0){
+                    action = "initDescent";
+                }else{
+                    action = "wait";
+                }
+            }else{
+                // check balls collision
+                let collisionFlag = false;
+                for(let b=0; b<balls.length; b++){
+                    if(balls[b] == fireBall){ continue; }
+                    let a = 60;//r1 + r2;
+                    let x = fireBall.x - balls[b].x;
+                    let y = fireBall.y - balls[b].y;
+        
+                    if (a > Math.sqrt((x * x) + (y * y))) {// collision
+                            collisionFlag = true;
+                        fireBallAngle = 0;
+                        // snug ball
+                        if(fireBall.x > balls[b].x && balls[b].x < 685){
+                            fireBall.x = balls[b].x + 35;
+
+                        }else{
+                            fireBall.x = balls[b].x - 35;
+                        }
+                        fireBall.y = fireBall.y > balls[b].y ? balls[b].y + 58 : balls[b].y;
+
+                        balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
+                        ballsToPop.push(balls[balls.length-1]);
+                        findAllAttachedBalls(balls[balls.length-1]);
+                        fireBall = null;
+                        // check if we have more than 3 attached
+                        if(ballsToPop.length >= 3){
+                            // detached from ghroup balls
+                            checkDetachedBalls();
+                            popTimer = 10;
+                            action = "pop";
+                        }else{
+                            //reset array;
+                            ballsToPop = [];
+                            if(balls[balls.length-1].y >= 560){
+                                action = "gameOver";
+                            }else if(numOfShots % 5 == 0){
+                                action = "initDescent";
+                            }else{
+                                action = "wait";
+                            }
+                        }
+
+                        break;
+                    }
+                    if(!collisionFlag){
+                        // render fire ball
+                        renderBall(fireBall);
+                    }else if(action != "pop"){
+                        if(numOfShots % 5 == 0){
+                            action = "initDescent";
+                        }else{
+                            action = "wait";
+                        }
+                    }
+                }
+                
             }
-            // check balls collision
-            
-            for(let b=0; b<balls.length; b++){
-                if(b == i){ continue; }
-                let a = 60;//r1 + r2;
-                let x = balls[i].x - balls[b].x;
-                let y = balls[i].y - balls[b].y;
-    
-                if (a > Math.sqrt((x * x) + (y * y))) {// collision
-console.log("collision");
-                    balls[i].angle = 0;
-                    // snug ball
-                    if(balls[i].x > balls[b].x && balls[b].x < 670){
-                        balls[i].x = balls[b].x + 35;
-
-                    }else{
-                        balls[i].x = balls[b].x - 35;
+        break;
+        case "pop":
+            // increase pop timer
+            if(popTimer !== null){
+                popTimer -= 1;
+            }
+            // time to pop ball
+            if(popTimer === 0){
+                // add score
+                score += (10 * ballsToPop.length);
+                // select currect ball to pop (remove from ball arr)
+                for(let i=0; i<balls.length; i++){
+                    //if(balls[i].x == ballsToPop[0].x && balls[i].y == ballsToPop[0].y){
+                        if(balls[i] == ballsToPop[0]){
+                        balls.splice(i, 1);
+                        ballsToPop.splice(0, 1);
+                        if(ballsToPop.length == 0){
+                            popTimer = null;
+                            if(numOfShots % 5 == 0){
+                                action = "initDescent";
+                            }else{
+                                action = "wait";
+                            }
+                        }else{
+                            popTimer = 10;
+                        }
+                        break;
                     }
-                    balls[i].y = balls[i].y > balls[b].y ? balls[b].y + 58 : balls[b].y;
-
-                    ballsToPop.push(balls[i]);
-                    findAllAttachedBalls(balls[i]);
-                    // check if we have more than 3 attached
-                    if(ballsToPop.length >= 3){
-                        // detached from ghroup balls
-                        checkDetachedBalls();
-                        popTimer = 10;
-                    }else{
-                        //reset array;
-                        ballsToPop = [];
-                        fireReady = true;
-                    }
-
-                    break;
                 }
             }
-        }
-
-        grd = ctx.createRadialGradient(balls[i].x -10, balls[i].y -13, 1, balls[i].x, balls[i].y, 35);
-        grd.addColorStop(0, "white" );
-        grd.addColorStop(1, ballVariants[balls[i].colorIndex] );
-        ctx.beginPath();
-        ctx.arc(balls[i].x, balls[i].y, 33, 0, 2 * Math.PI);
-        ctx.fillStyle = grd;
-        ctx.fill();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = ballVariants[balls[i].colorIndex];
-        ctx.stroke(); 
+        break;
+        case "initDescent":
+            // add new back row
+            let tmpx;
+            let tmpy = -15;
+            let ballsInRow;
+            if(!rowFull){
+                tmpx = 80;
+                ballsInRow = 9;
+                rowFull = true;
+            }else{
+                tmpx = 45;
+                ballsInRow = 10;
+                rowFull = false;
+            }
+            for(let i=0; i<ballsInRow; i++){
+                let tmpBall = new Ball(tmpx, tmpy, getRndBallColorIndex());
+                balls.unshift(tmpBall);
+                tmpx += 71;
+            }
+            action = "goDescent";
+        break;
+        case "goDescent":
+            let gameOverFlag = false;
+            // move all balls down
+            for(let i=0; i<balls.length; i++){
+                balls[i].y += 3;
+                if(balls[i].y >= 577){
+                    gameOverFlag = true;
+                }
+            }
+            if(gameOverFlag){
+                action = "gameOver";
+            }else if(balls[0].y >= 45){
+                action = "wait";
+            }
+        break;
+        case "gameOver":
+            ctx.font = "150px Verdana";
+            var gradient = ctx.createLinearGradient(0, 0, 500, 0);
+            gradient.addColorStop("0", "purple");
+            gradient.addColorStop("0.25", "blue");
+            gradient.addColorStop("0.5", "green");
+            gradient.addColorStop("0.75", "yellow");
+            gradient.addColorStop("1.0", "red");
+            ctx.textAlign = "center";
+            ctx.fillStyle = gradient;
+            ctx.strokeStyle = "black";
+            ctx.strokeText("Game", 350, 250);
+            ctx.fillText("Game", 350, 250);
+            ctx.strokeText("Over!", 350, 420);
+            ctx.fillText("Over!", 350, 420);
+        break;
     }
 
-    //check if time to descend
-    if(descend === 0){
-        descend = 10;
-        // add new back row
-        let tmpx;
-        let tmpy = -18;
-        let ballsInRow;
-        if(!rowFull){
-            tmpx = 77;
-            ballsInRow = 9;
-            rowFull = true;
-        }else{
-            tmpx = 42;
-            ballsInRow = 10;
-            rowFull = false;
+
+
+
+
+
+    /********************************************/
+    /**********     Render Current Ball    ******/
+    /********************************************/
+    if(currentBall.x < 365){
+        currentBall.x *= 1.1;
+        if(currentBall.x > 365){
+            currentBall.x = 365;
         }
-        for(let i=0; i<ballsInRow; i++){
-            let tmpBall = new Ball(tmpx, tmpy, getRndBallColorIndex());
-            balls.unshift(tmpBall);
-            tmpx += 69;
+    }else if(currentBall.y > 655){
+        currentBall.y *= 0.98;
+        if(currentBall.y < 655){
+            currentBall.y = 655;
         }
     }
 
-    if(userLossFlag){
-        return endGame();
+    renderBall(currentBall);
+    
+    /********************************************/
+    /**********     Render Next Ball    *********/
+    /********************************************/
+    renderBall(nextBall);
+    
+    /********************************************/
+    /**********     Render Balls    *************/
+    /********************************************/
+    for(let i=0; i<balls.length; i++){
+        renderBall(balls[i]);
     }
+
+    
 
     window.requestAnimationFrame(render);
+}
+
+
+function renderBall(tball){
+    ctx.save();
+    grd = ctx.createRadialGradient(tball.x -10, tball.y -13, 1, tball.x, tball.y, 35);
+    grd.addColorStop(0, "white" );
+    grd.addColorStop(1, ballVariants[tball.colorIndex] );
+    ctx.beginPath();
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.arc(tball.x, tball.y, 33, 0, 2 * Math.PI);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = ballVariants[tball.colorIndex];
+    ctx.stroke(); 
+    ctx.restore();
+}
+
+function fire(){
+    if(action != "wait"){
+        return;
+    }
+    numOfShots += 1;
+
+    action = "fire";
+
+    // init fire ball
+    fireBall = new Ball(currentBall.x, currentBall.y, currentBall.colorIndex);
+    fireBallAngle = mouse.angle;
+
+    // switch current with next ball
+    currentBall.x = nextBall.x;
+    currentBall.y = nextBall.y;
+    currentBall.colorIndex = nextBall.colorIndex;
+
+    // reste next ball
+    nextBall.colorIndex = getRndBallColorIndex();
+}
+
+function getRndBallColorIndex(){
+    // generate rendom index 0-6
+    return Math.floor((Math.random() * 6));
 }
 
 function findAllAttachedBalls(tball){
@@ -360,10 +435,11 @@ function findAllAttachedBalls(tball){
         }
     }
 }
-
+    
 function checkDetachedBalls(){
     // remove from ball list all ball that are not attached to other balls (detached from group).
-    let onwall = balls.filter(o => { return (o.x <= 77 || o.x >= 600 || o.y == 42) && !ballsToPop.includes(o)});
+    let onwall = balls.filter(o => { return (o.x <= 77 || o.x >= 650 || o.y == 45) && !ballsToPop.includes(o)});
+
    // onwall.map(o => o.colorIndex = 0);
     let tocheck = balls.filter(o => {return !(onwall.includes(o) || ballsToPop.includes(o))})
 
@@ -387,42 +463,3 @@ function checkDetachedBalls(){
     }
 }
 
-function fire(){
-    if(!fireReady){
-        return;
-    }
-    descend -= 1;
-    fireReady = false;
-    numOfShots += 1;
-    // start fire sequence
-    currentBall.angle = mouse.angle;
-    // add current ball to ball list
-    balls.push({...currentBall});
-    // switch current with next ball
-    currentBall.x = nextBall.x;
-    currentBall.y = nextBall.y;
-    currentBall.colorIndex = nextBall.colorIndex;
-    currentBall.angle = 0;
-    // reste next ball
-    nextBall.colorIndex = getRndBallColorIndex();
-}
-
-function getRndBallColorIndex(){
-    // generate rendom index 0-6
-    return Math.floor((Math.random() * 6));
-}
-
-function endGame(){
-    ctx.font = "60px Verdana";
-    // Create gradient
-    var gradient = ctx.createLinearGradient(0, 0, 500, 0);
-    gradient.addColorStop("0", "purple");
-    gradient.addColorStop("0.25", "blue");
-    gradient.addColorStop("0.5", "green");
-    gradient.addColorStop("0.75", "yellow");
-    gradient.addColorStop("1.0", "red");
-    ctx.textAlign = "center";
-    ctx.fillStyle = gradient;
-    ctx.fillText("Game", 250, 200);
-    ctx.fillText("Over!", 450, 200);
-}
