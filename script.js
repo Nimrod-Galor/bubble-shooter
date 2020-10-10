@@ -19,6 +19,8 @@ var currentBall;
 var nextBall;
 var popTimer = null;
 var fireReady = true;
+var descend = 10;
+let rowFull = true;
 
 var ballVariants = ["#f22", "#f2f", "#22f", "#2ff", "#2f2", "#ff2"];
 var balls = [];
@@ -40,7 +42,7 @@ function init(){
     nextBall = new Ball(200, 658, getRndBallColorIndex());
 
     // init balls
-    let rowFull = true;
+    rowFull = true;
     let tmpx = 42;
     let tmpy = 42;
     for(let i=1; i<30; i++){
@@ -193,14 +195,32 @@ function render(evt){
     /**********     Balls    ********************/
     /********************************************/
 
-    if(popTimer !== null){
-        popTimer -= 1;
+    let userLossFlag = false;
+    // move bak row down
+    if(balls[0].y < 42){
+        // move all balls down
+        for(let i=0; i<balls.length; i++){
+            balls[i].y += 3;
+            if(balls[i].y >= 390){
+                userLossFlag = true;
+            }
+        }
+
+        if(balls[0].y == 42){
+            fireReady = true;
+        }
     }
 
+    // increase pop timer
+    if(popTimer !== null){
+        popTimer -= 1;
+        fireReady = false;
+    }
+    // time to pop ball
     if(popTimer === 0){
         // add score
         score += (10 * ballsToPop.length);
-        // time to pop
+        // select currect ball to pop (remove from ball arr)
         for(let i=0; i<balls.length; i++){
             if(balls[i].x == ballsToPop[0].x && balls[i].y == ballsToPop[0].y){
                 balls.splice(i, 1);
@@ -216,6 +236,7 @@ function render(evt){
         }
     }
 
+    
     // render all balls
     for(let i=0; i<balls.length; i++){
         if(balls[i].angle != 0){// if fire move ball
@@ -285,7 +306,32 @@ console.log("collision");
         ctx.stroke(); 
     }
 
-    
+    //check if time to descend
+    if(descend === 0){
+        descend = 10;
+        // add new back row
+        let tmpx;
+        let tmpy = -18;
+        let ballsInRow;
+        if(!rowFull){
+            tmpx = 77;
+            ballsInRow = 9;
+            rowFull = true;
+        }else{
+            tmpx = 42;
+            ballsInRow = 10;
+            rowFull = false;
+        }
+        for(let i=0; i<ballsInRow; i++){
+            let tmpBall = new Ball(tmpx, tmpy, getRndBallColorIndex());
+            balls.unshift(tmpBall);
+            tmpx += 69;
+        }
+    }
+
+    if(userLossFlag){
+        return endGame();
+    }
 
     window.requestAnimationFrame(render);
 }
@@ -300,7 +346,7 @@ function findAllAttachedBalls(tball){
             continue;
         }
         
-        let a = 80;//r1 + r2;
+        let a = 75;//r1 + r2;
         let x = tball.x - balls[b].x;
         let y = tball.y - balls[b].y;
 
@@ -345,6 +391,7 @@ function fire(){
     if(!fireReady){
         return;
     }
+    descend -= 1;
     fireReady = false;
     numOfShots += 1;
     // start fire sequence
@@ -363,4 +410,19 @@ function fire(){
 function getRndBallColorIndex(){
     // generate rendom index 0-6
     return Math.floor((Math.random() * 6));
+}
+
+function endGame(){
+    ctx.font = "60px Verdana";
+    // Create gradient
+    var gradient = ctx.createLinearGradient(0, 0, 500, 0);
+    gradient.addColorStop("0", "purple");
+    gradient.addColorStop("0.25", "blue");
+    gradient.addColorStop("0.5", "green");
+    gradient.addColorStop("0.75", "yellow");
+    gradient.addColorStop("1.0", "red");
+    ctx.textAlign = "center";
+    ctx.fillStyle = gradient;
+    ctx.fillText("Game", 250, 200);
+    ctx.fillText("Over!", 450, 200);
 }
