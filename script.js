@@ -37,6 +37,19 @@ var ballVariants = ["#f22", "#f2f", "#22f", "#2ff", "#2f2", "#ff2"];
 var balls = [];
 var ballsToPop = [];
 
+const levels = [
+    {score:500, threshold:22},
+    {score:1000, threshold:20},
+    {score:2000, threshold:18},
+    {score:3000, threshold:15},
+    {score:4500, threshold:12},
+    {score:6000, threshold:10},
+    {score:8000, threshold:9},
+    {score:10000, threshold:8},
+    {score:13000, threshold:6},
+    {score:16000, threshold:5},
+];
+
 class Ball{
     constructor(x, y, color){
         this.x = x;
@@ -52,7 +65,7 @@ function init(){
     currentBall = new Ball(365, 655, getRndBallColorIndex());
     nextBall = new Ball(200, 695, getRndBallColorIndex());
     fireBall = null;
-
+    
     /************   init balls  **************/
     /****************************************/
     rowFull = true;
@@ -181,7 +194,7 @@ function render(evt){
                 fireBall.x -= tmpx <= 35 ? tmpx : -(70 - tmpx);
                 balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
                 fireBall = null;
-                if(numOfShots % 5 == 0){
+                if(isTimeToDescent()){
                     action = "initDescent";
                 }else{
                     action = "wait";
@@ -222,7 +235,7 @@ function render(evt){
                             ballsToPop = [];
                             if(balls[balls.length-1].y >= 560){
                                 action = "gameOver";
-                            }else if(numOfShots % 5 == 0){
+                            }else if(isTimeToDescent()){
                                 action = "initDescent";
                             }else{
                                 action = "wait";
@@ -235,7 +248,7 @@ function render(evt){
                         // render fire ball
                         renderBall(fireBall);
                     }else if(action != "pop"){
-                        if(numOfShots % 5 == 0){
+                        if(isTimeToDescent()){
                             action = "initDescent";
                         }else{
                             action = "wait";
@@ -254,6 +267,10 @@ function render(evt){
             if(popTimer === 0){
                 // add score
                 score += (10 * ballsToPop.length);
+                // check level
+                if(levels[level].score <= score){
+                    level += 1;
+                }
                 // select currect ball to pop (remove from ball arr)
                 for(let i=0; i<balls.length; i++){
                     //if(balls[i].x == ballsToPop[0].x && balls[i].y == ballsToPop[0].y){
@@ -262,7 +279,7 @@ function render(evt){
                         ballsToPop.splice(0, 1);
                         if(ballsToPop.length == 0){
                             popTimer = null;
-                            if(numOfShots % 5 == 0){
+                            if(isTimeToDescent()){
                                 action = "initDescent";
                             }else{
                                 action = "wait";
@@ -322,10 +339,10 @@ function render(evt){
             ctx.textAlign = "center";
             ctx.fillStyle = gradient;
             ctx.strokeStyle = "black";
-            ctx.strokeText("Game", 350, 250);
-            ctx.fillText("Game", 350, 250);
-            ctx.strokeText("Over!", 350, 420);
-            ctx.fillText("Over!", 350, 420);
+            ctx.strokeText("Game", 396, 254);
+            ctx.fillText("Game", 400, 250);
+            ctx.strokeText("Over!", 396, 424);
+            ctx.fillText("Over!", 400, 420);
         break;
     }
 
@@ -463,3 +480,6 @@ function checkDetachedBalls(){
     }
 }
 
+function isTimeToDescent(){
+   return (numOfShots % levels[level].threshold == 0);
+}
