@@ -5,6 +5,14 @@ canvas.addEventListener('mousemove', function(evt) {
     let rect = canvas.getBoundingClientRect();
     mouse.x = evt.clientX - rect.left;
     mouse.y = evt.clientY - rect.top;
+    // check if new game button hover
+console.log(`X:${mouse.x} Y:${mouse.y}`);
+    if(mouse.x < 930 & mouse.x > 745 & mouse.y < 672 & mouse.y > 620){
+        canvas.style.cursor = "pointer";
+        return;
+    }
+    canvas.style.cursor = "default";
+    // check if out of game board
     if(mouse.x < 10 || mouse.x > 730 || mouse.y < 10 || mouse.y > 650){
         return;
     }
@@ -65,7 +73,7 @@ function init(){
     currentBall = new Ball(365, 655, getRndBallColorIndex());
     nextBall = new Ball(200, 695, getRndBallColorIndex());
     fireBall = null;
-    
+    balls = [];
     /************   init balls  **************/
     /****************************************/
     rowFull = true;
@@ -136,7 +144,20 @@ function render(evt){
     ctx.fillStyle = "blue";
     ctx.textAlign = "center";
     ctx.fillText(numOfShots, 830, 400); 
-    
+
+    // new game button
+    ctx.save();
+    ctx.shadowBlur = 5;
+    //ctx.shadowOffsetX = -5;
+    ctx.shadowOffsetY = 5;
+    ctx.shadowColor = "black";
+    ctx.fillStyle = "blue";
+    ctx.fillRect(745, 620, 190, 50);
+    ctx.restore();
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText("New Game", 842, 655); 
+
     /********************************************/
     /**********     Aim    **********************/
     /********************************************/
@@ -403,6 +424,17 @@ function renderBall(tball){
 }
 
 function fire(){
+    // check if new game button was clicked
+    if(mouse.x < 930 & mouse.x > 745 & mouse.y < 672 & mouse.y > 620){
+        if(numOfShots != 0 && action != "gameOver"){
+            if(!confirm("Start New Game?")){
+                return;
+            }
+        }
+        init();
+        return;
+    }
+
     if(action != "wait"){
         return;
     }
