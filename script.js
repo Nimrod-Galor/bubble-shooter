@@ -6,7 +6,7 @@ canvas.addEventListener('mousemove', function(evt) {
     mouse.x = evt.clientX - rect.left;
     mouse.y = evt.clientY - rect.top;
     // check if new game button hover
-console.log(`X:${mouse.x} Y:${mouse.y}`);
+//console.log(`X:${mouse.x} Y:${mouse.y}`);
     if(mouse.x < 930 & mouse.x > 745 & mouse.y < 672 & mouse.y > 620){
         canvas.style.cursor = "pointer";
         return;
@@ -211,14 +211,26 @@ function render(evt){
                 fireBallAngle = 0;
                 fireBall.y = 45;
                 // snug to x
-                let tmpx = (fireBall.x - 45) % 70;
+                let tmpx = rowFull ? (fireBall.x - 80) % 71 : (fireBall.x - 45) % 71;
                 fireBall.x -= tmpx <= 35 ? tmpx : -(70 - tmpx);
                 balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
+                ballsToPop.push(balls[balls.length-1]);
+                findAllAttachedBalls(balls[balls.length-1]);
                 fireBall = null;
-                if(isTimeToDescent()){
-                    action = "initDescent";
+                // check if we have more than 3 attached
+                if(ballsToPop.length >= 3){
+                    // detached from ghroup balls
+                    checkDetachedBalls();
+                    popTimer = 10;
+                    action = "pop";
                 }else{
-                    action = "wait";
+                    //reset pop array;
+                    ballsToPop = [];
+                    if(isTimeToDescent()){
+                        action = "initDescent";
+                    }else{
+                        action = "wait";
+                    }
                 }
             }else{
                 // check balls collision
@@ -230,16 +242,30 @@ function render(evt){
                     let y = fireBall.y - balls[b].y;
         
                     if (a > Math.sqrt((x * x) + (y * y))) {// collision
-                            collisionFlag = true;
+                        collisionFlag = true;
                         fireBallAngle = 0;
                         // snug ball
-                        if(fireBall.x > balls[b].x && balls[b].x < 685){
+                        if(fireBall.y > balls[b].y + 12){
+                            // row bellow
+                            fireBall.y = balls[b].y + 58;
+                        }else if(fireBall.y > balls[b].y - 12 || balls[b].y == 45){
+                            // same row
+                            fireBall.y = balls[b].y
+                        }else{
+                            // row above
+                            fireBall.y = balls[b].y - 58;
+                        }
+
+                        //let isFullrow = ((13 + fireBall.y) / 58) % 2 != 0;
+//console.log(`targetIsFullrow: ${isFullrow}`);
+
+                        if(fireBall.x > balls[b].x && balls[b].x < 683){
                             fireBall.x = balls[b].x + 35;
 
                         }else{
                             fireBall.x = balls[b].x - 35;
                         }
-                        fireBall.y = fireBall.y > balls[b].y ? balls[b].y + 58 : balls[b].y;
+                        
 
                         balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
                         ballsToPop.push(balls[balls.length-1]);
@@ -252,7 +278,7 @@ function render(evt){
                             popTimer = 10;
                             action = "pop";
                         }else{
-                            //reset array;
+                            //reset pop array;
                             ballsToPop = [];
                             if(balls[balls.length-1].y >= 560){
                                 action = "gameOver";
@@ -476,7 +502,7 @@ function findAllAttachedBalls(tball){
 
         if (a > Math.sqrt((x * x) + (y * y))) {// collision
 //console.log(`ball:${b} attached`);
-            if(tball.colorIndex == balls[b].colorIndex){
+            if(tball.colorIndex === balls[b].colorIndex){
 //console.log("color match");
                 ballsToPop.push(balls[b]);
                 findAllAttachedBalls(balls[b]);
