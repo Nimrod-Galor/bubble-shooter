@@ -244,28 +244,39 @@ function render(evt){
                     if (a > Math.sqrt((x * x) + (y * y))) {// collision
                         collisionFlag = true;
                         fireBallAngle = 0;
-                        // snug ball
+                        // snug ball Y
                         if(fireBall.y > balls[b].y + 12){
+console.log("b");
                             // row bellow
                             fireBall.y = balls[b].y + 58;
+                            // snug ball X
+                            fireBall.x = (fireBall.x > balls[b].x && balls[b].x < 683) ? balls[b].x + 35 : balls[b].x - 35;
                         }else if(fireBall.y > balls[b].y - 12 || balls[b].y == 45){
+console.log("s");
                             // same row
                             fireBall.y = balls[b].y
+                            // snug ball X
+                            fireBall.x = (fireBall.x > balls[b].x && balls[b].x < 683) ? balls[b].x + 71 : balls[b].x - 71;
+
                         }else{
                             // row above
+console.log("a");
                             fireBall.y = balls[b].y - 58;
+                            // snug ball X
+                            fireBall.x = (fireBall.x > balls[b].x && balls[b].x < 683) ?balls[b].x + 35 : balls[b].x - 35;
+
                         }
 
                         //let isFullrow = ((13 + fireBall.y) / 58) % 2 != 0;
 //console.log(`targetIsFullrow: ${isFullrow}`);
 
-                        if(fireBall.x > balls[b].x && balls[b].x < 683){
+                    /*    if(fireBall.x > balls[b].x && balls[b].x < 683){
                             fireBall.x = balls[b].x + 35;
 
                         }else{
                             fireBall.x = balls[b].x - 35;
                         }
-                        
+                      */  
 
                         balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
                         ballsToPop.push(balls[balls.length-1]);
@@ -521,7 +532,7 @@ function checkDetachedBalls(){
     for(let a=0; a<tocheck.length; a++){
         let isgroup = false;
         for(let b=0; b<onwall.length; b++){
-            let c = 71;//r1 + r2;
+            let c = 75;//r1 + r2;
             let x = tocheck[a].x - onwall[b].x;
             let y = tocheck[a].y - onwall[b].y;
 
