@@ -521,8 +521,40 @@ function findAllAttachedBalls(tball){
         }
     }
 }
-    
+
 function checkDetachedBalls(){
+    // remove from ball list all ball that are not attached to other balls (detached from group).
+    let onwall = balls.filter(o => { return (o.x <= 77 || o.x >= 650 || o.y == 45) && !ballsToPop.includes(o)});
+
+   // onwall.map(o => o.colorIndex = 0);
+    let tocheck = balls.filter(o => {return !(onwall.includes(o) || ballsToPop.includes(o))})
+
+    for(let a=0; a<tocheck.length; a++){
+        for(let b=0; b<onwall.length; b++){
+            if(tocheck[a] == onwall[b]){
+                continue;
+            }
+
+            let c = 75;//r1 + r2;
+            let x = tocheck[a].x - onwall[b].x;
+            let y = tocheck[a].y - onwall[b].y;
+
+            if (c > Math.sqrt((x * x) + (y * y))) {// collision
+                // add ball to onwall
+                onwall.push(tocheck[a]);       
+                break;
+            }
+        }
+    }
+
+
+    let detached = tocheck.filter(x => !onwall.includes(x));
+    if(detached.length > 0){
+        ballsToPop.push(...detached);
+    }
+}
+
+function _checkDetachedBalls(){
     // remove from ball list all ball that are not attached to other balls (detached from group).
     let onwall = balls.filter(o => { return (o.x <= 77 || o.x >= 650 || o.y == 45) && !ballsToPop.includes(o)});
 
