@@ -25,26 +25,20 @@ canvas.addEventListener("click", fire);
 var ctx = canvas.getContext('2d');
 var mouse = {x:0,y:0, angle:0};
 var needle = {x1:365, y1: 655, x2:0, y2:0};
-var action = "wait";
-
-
-var score = 0;
-var level = 0;
-var numOfShots = 0;
-
-
+var action;
+var score;
+var level;
+var numOfShots;
 var currentBall;
 var nextBall;
 var fireBall;
-var fireBallAngle = 0;
-
-var popTimer = null;
-let rowFull = true;
-
-var ballVariants = ["#f22", "#f2f", "#22f", "#2ff", "#2f2", "#ff2"];
+var fireBallAngle;
+var popTimer;
+let rowFull;
 var balls = [];
 var ballsToPop = [];
 
+const ballVariants = ["#f22", "#f2f", "#22f", "#2ff", "#2f2", "#ff2", "#c0c0c0"];
 const levels = [
     {score:500, threshold:22},
     {score:1000, threshold:20},
@@ -63,24 +57,28 @@ class Ball{
         this.x = x;
         this.y = y;
         this.colorIndex = color;
-        //this.angle = 0;
     }
 }
 
 function init(){
+    action = "wait";
     score = 0;
+    level = 0;
     numOfShots = 0;
-    currentBall = new Ball(365, 655, getRndBallColorIndex());
-    nextBall = new Ball(200, 695, getRndBallColorIndex());
+    currentBall = new Ball(365, 655, rndColorIndex());
+    nextBall = new Ball(200, 695, rndColorIndex());
     fireBall = null;
+    fireBallAngle = 0;
+    popTimer = null;
     balls = [];
+    ballsToPop = [];
     /************   init balls  **************/
     /****************************************/
     rowFull = true;
     let tmpx = 45;
     let tmpy = 45;
     for(let i=1; i<30; i++){
-        let tmpBall = new Ball(tmpx, tmpy, getRndBallColorIndex());
+        let tmpBall = new Ball(tmpx, tmpy, rndColorIndex());
         balls.push(tmpBall);
         tmpx += 71;
         if(tmpx >= 710){// new row
@@ -198,6 +196,54 @@ function render(evt){
     /**********     Actions         *************/
     /********************************************/
     switch(action){
+        case "superBall":
+            fireBall.x += 12  * Math.cos(fireBallAngle);
+            fireBall.y += 12 * Math.sin(fireBallAngle);
+        
+            // bouns of wall
+            if(fireBall.x > 685 || fireBall.x < 45){// Wall collision
+                fireBallAngle = Math.PI - fireBallAngle;
+            }
+            // is out of ceiling
+            if(fireBall.y <= 0){
+                fireBall = null;
+                // check if we have more than 3 attached
+                if(ballsToPop.length > 0){
+                    // detached from ghroup balls
+                    checkDetachedBalls();
+                    popTimer = 10;
+                    action = "pop";
+                }else{
+                    //reset pop array;
+                    ballsToPop = [];
+                    if(isTimeToDescent()){
+                        action = "initDescent";
+                    }else{
+                        action = "wait";
+                    }
+                }
+            }else{
+                renderBall(fireBall);
+                for(let b=0; b<balls.length; b++){
+                    //if(balls[b] == fireBall){ continue; }
+                    let a = 75;//r1 + r2;
+                    let x = fireBall.x - balls[b].x;
+                    let y = fireBall.y - balls[b].y;
+        
+                    if (a > Math.sqrt((x * x) + (y * y))) {// collision
+                        score += 10;
+                        //ballsToPop.push(balls[b]);
+                        findAllAttachedBalls(balls[b]);
+                        // remove current ball from ballstopop
+                        ballsToPop = ballsToPop.filter(o => o!=balls[b]);
+                        // pop current ball
+                        balls.splice(balls.indexOf(balls[b]), 1);
+                        break;
+                    }
+
+                }
+            }
+        break;
         case "fire":
             fireBall.x += 12  * Math.cos(fireBallAngle);
             fireBall.y += 12 * Math.sin(fireBallAngle);
@@ -236,7 +282,7 @@ function render(evt){
                 // check balls collision
                 let collisionFlag = false;
                 for(let b=0; b<balls.length; b++){
-                    if(balls[b] == fireBall){ continue; }
+                    //if(balls[b] == fireBall){ continue; }
                     let a = 60;//r1 + r2;
                     let x = fireBall.x - balls[b].x;
                     let y = fireBall.y - balls[b].y;
@@ -246,13 +292,11 @@ function render(evt){
                         fireBallAngle = 0;
                         // snug ball Y
                         if(fireBall.y > balls[b].y + 12){
-console.log("b");
                             // row bellow
                             fireBall.y = balls[b].y + 58;
                             // snug ball X
                             fireBall.x = (fireBall.x > balls[b].x && balls[b].x < 683) ? balls[b].x + 35 : balls[b].x - 35;
                         }else if(fireBall.y > balls[b].y - 12 || balls[b].y == 45){
-console.log("s");
                             // same row
                             fireBall.y = balls[b].y
                             // snug ball X
@@ -266,17 +310,6 @@ console.log("a");
                             fireBall.x = (fireBall.x > balls[b].x && balls[b].x < 683) ?balls[b].x + 35 : balls[b].x - 35;
 
                         }
-
-                        //let isFullrow = ((13 + fireBall.y) / 58) % 2 != 0;
-//console.log(`targetIsFullrow: ${isFullrow}`);
-
-                    /*    if(fireBall.x > balls[b].x && balls[b].x < 683){
-                            fireBall.x = balls[b].x + 35;
-
-                        }else{
-                            fireBall.x = balls[b].x - 35;
-                        }
-                      */  
 
                         balls.push(new Ball(fireBall.x, fireBall.y, fireBall.colorIndex));
                         ballsToPop.push(balls[balls.length-1]);
@@ -365,7 +398,7 @@ console.log("a");
                 rowFull = false;
             }
             for(let i=0; i<ballsInRow; i++){
-                let tmpBall = new Ball(tmpx, tmpy, getRndBallColorIndex());
+                let tmpBall = new Ball(tmpx, tmpy, rndColorIndex());
                 balls.unshift(tmpBall);
                 tmpx += 71;
             }
@@ -477,7 +510,7 @@ function fire(){
     }
     numOfShots += 1;
 
-    action = "fire";
+    action = currentBall.colorIndex == 6 ? "superBall" : "fire";
 
     // init fire ball
     fireBall = new Ball(currentBall.x, currentBall.y, currentBall.colorIndex);
@@ -489,11 +522,16 @@ function fire(){
     currentBall.colorIndex = nextBall.colorIndex;
 
     // reste next ball
-    nextBall.colorIndex = getRndBallColorIndex();
+    // check if superBall ball
+    if(Math.floor((Math.random() * 40)) == 39){
+        nextBall.colorIndex = 6;
+    }else{
+        nextBall.colorIndex = rndColorIndex();
+    }
 }
 
-function getRndBallColorIndex(){
-    // generate rendom index 0-6
+function rndColorIndex(){
+    // generate rendom index 0-5
     return Math.floor((Math.random() * 6));
 }
 
@@ -554,32 +592,6 @@ function checkDetachedBalls(){
     }
 }
 
-function _checkDetachedBalls(){
-    // remove from ball list all ball that are not attached to other balls (detached from group).
-    let onwall = balls.filter(o => { return (o.x <= 77 || o.x >= 650 || o.y == 45) && !ballsToPop.includes(o)});
-
-   // onwall.map(o => o.colorIndex = 0);
-    let tocheck = balls.filter(o => {return !(onwall.includes(o) || ballsToPop.includes(o))})
-
-    for(let a=0; a<tocheck.length; a++){
-        let isgroup = false;
-        for(let b=0; b<onwall.length; b++){
-            let c = 75;//r1 + r2;
-            let x = tocheck[a].x - onwall[b].x;
-            let y = tocheck[a].y - onwall[b].y;
-
-            if (c > Math.sqrt((x * x) + (y * y))) {// collision
-                // add ball to onwall
-                onwall.push(tocheck[a]);
-                isgroup = true;
-                break;
-            }
-        }
-        if(!isgroup){// ball is detached. add to pop arr.
-            ballsToPop.push(tocheck[a]);
-        }
-    }
-}
 
 function isTimeToDescent(){
    return (numOfShots % levels[level].threshold == 0);
